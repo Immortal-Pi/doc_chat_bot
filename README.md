@@ -9,9 +9,7 @@ A  RAG system which loads PDF's documents(typically text books), when queried ab
 #### Hugging Face Token
 #### OpenAI 
 
-```http
-  Hugging Face
-```
+
 
 | Parameter | Type     | Description                |
 | :-------- | :------- | :------------------------- |
