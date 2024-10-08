@@ -13,8 +13,10 @@ A  RAG system which loads PDF's documents(typically text books), when queried ab
 
 | Parameter | Type     | Description                |
 | :-------- | :------- | :------------------------- |
-| `Hugging Face` | `TOKEN` | **Required**. Your API key |
-| `OpenAI` | `TOKEN` | **Required**. Your API key |
+| `Hugging Face` | `API KEY` | **Required**. Your API key |
+| `OpenAI` | `API KEY` | **Required**. Your API key |
+| `AzureOpenAI` | `API KEY` | **Required**. Your API key |
+
 
 
 .
