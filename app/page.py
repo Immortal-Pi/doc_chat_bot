@@ -19,7 +19,9 @@ import chromadb
 from pyprojroot import here
 from prepare_vectordb_from_text_chunks import create_chromaDB
 import warnings
+import pandas as pd
 
+run_once=0
 def load_lottiefile(filepath:str):
     with open(filepath,'r',encoding='utf-8') as f:
         return json.load(f)
@@ -60,19 +62,20 @@ def get_text_chunks(text):
 def get_vector_store(text_chunk):
     # OPEN AI embeddings technique and FAISS vector store
     embeddings=OpenAIEmbeddings()
-    # tokenizer=AutoTokenizer.from_pretrained("dunzhang/stella_en_1.5B_v5")
-    # model = AutoModel.from_pretrained("dunzhang/stella_en_1.5B_v5", trust_remote_code=True)
-    # inputs = tokenizer(text_chunks, return_tensors="pt", padding=True, truncation=True)
-    # outputs = model(**inputs)
-
-    # embeddings= HuggingFaceEmbeddings()
-    # vectorstore=FAISS.from_texts(texts=text_chunk,embedding=embeddings)
     index_path='resources/FAISS/'
     vectorstore=FAISS.from_texts(texts=text_chunk,embedding=embeddings)
-    vectorstore.save_local(index_path)
-    return vectorstore
+    if os.path.exists('resources/FAISS/index.faiss'):
+        store = FAISS.load_local('resources/FAISS/', embeddings, allow_dangerous_deserialization=True)
+        store.merge_from(vectorstore)
+        store.save_local(index_path)
+        return store
+    else:
+        vectorstore.save_local(index_path)
+        return vectorstore
 
-def get_conversation_chain(vectorstore):
+def get_conversation_chain():
+    embeddings = OpenAIEmbeddings()
+    vectorstore = FAISS.load_local('resources/FAISS/', embeddings, allow_dangerous_deserialization=True)
     llm=ChatOpenAI()
     # llm=HuggingFaceHub(repo_id='nvidia/Llama-3_1-Nemotron-51B-Instruct',model_kwargs={"temperature":0.5,"max_length":512})
     memory=ConversationBufferMemory(memory_key='chat_history',return_messages=True)
@@ -81,6 +84,7 @@ def get_conversation_chain(vectorstore):
         retriever=vectorstore.as_retriever(),
         memory=memory
     )
+    
     return conversation_chain
 
 def handle_userinput(user_input):
@@ -98,19 +102,16 @@ def handle_userinput(user_input):
             st.write(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
             # st.write(bot_template.replace("{{MSG}}",message.content),unsafe_allow_html=True)
     # st.write(response)
-def run_once(f):
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            wrapper.has_run = True
-            return f(*args, **kwargs)
-    wrapper.has_run = False
-    return wrapper
-@run_once
-def get_session_state(vectorstore):
-    st.session_state.conversation = get_conversation_chain(vectorstore)
+
+def print_existing_books():
+    #embeddings = OpenAIEmbeddings()
+    #vectorstore = FAISS.load_local('resources/FAISS/', embeddings, allow_dangerous_deserialization=True)
+    df=pd.read_csv('resources/books/all.csv')
+    st.write(df['books'])
+
 
 if __name__=='__main__':
-    warnings.filterwarnings('ignore')
+    #warnings.filterwarnings('ignore')
     lottie_books=load_lottieurl('https://lottie.host/262a2841-5ec5-4228-9e10-f1c40368652c/Mc4Pv7r5p5.json')
     lottie_books_local=load_lottiefile('resources/books.json')
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
@@ -137,9 +138,9 @@ if __name__=='__main__':
     st.write(css, unsafe_allow_html=True)
     st.header("Chat with PDF's")
     user_question=st.text_input("Ask me anything about the documents:")
-    embeddings = OpenAIEmbeddings()
-    vectorstore = FAISS.load_local('resources/FAISS/', embeddings, allow_dangerous_deserialization=True)
-    action=run_once(get_session_state(vectorstore))
+    
+    
+    #action=run_once(get_session_state())
     
     if user_question:
         handle_userinput(user_question)
@@ -151,7 +152,11 @@ if __name__=='__main__':
     with st.sidebar:
         st.subheader('Your Documents')
         pdf_docs = st.file_uploader("Upload PFS's here and click on process", accept_multiple_files=True)
-
+        docs=[]
+        for doc in pdf_docs:
+            docs.append(doc.name)
+        data_frame=pd.DataFrame({'books':docs})
+        print(data_frame)
         if st.button('Process'):
             with st.spinner('processing'):
                 # get pdf text
@@ -164,10 +169,18 @@ if __name__=='__main__':
                 vectorstore = get_vector_store(text_chunks)
                 #st.write(vectorstore)
                 #create_chromaDB(pdf_docs)
+                print(os.listdir('resources/books'))
+                if len(os.listdir('resources/books'))==0:
+                    data_frame.to_csv('resources/books/all.csv',header=['books'],index=False)
+                else:
+                    data_frame.to_csv('resources/books/all.csv',mode='a',index=False,header=False)
 
 
                 # create conversation chain
-                st.session_state.conversation = get_conversation_chain(vectorstore)
+                st.session_state.conversation = get_conversation_chain()
+        if st.button('From existing books'):
+            print_existing_books()
+            st.session_state.conversation = get_conversation_chain()
 
 
 
