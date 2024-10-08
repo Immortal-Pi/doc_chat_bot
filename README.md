@@ -29,7 +29,7 @@ A  RAG system which loads PDF's documents(typically text books), when queried ab
 
 ## Screenshots
 
-![App Screenshot](https://github.com/Immortal-Pi/doc_chat_bot/blob/main/resources/1.png)
+![App Screenshot](https://github.com/Immortal-Pi/doc_chat_bot/blob/main/resources/6.png)
 
 ![App Screenshot](https://github.com/Immortal-Pi/doc_chat_bot/blob/main/resources/2.png)
 

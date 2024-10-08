@@ -3,12 +3,13 @@ from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.embeddings import OpenAIEmbeddings, HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS, Chroma
+from langchain_community.vectorstores import FAISS
 from transformers import AutoModel, AutoTokenizer
 from langchain.memory import ConversationBufferMemory
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 from langchain.chat_models import ChatOpenAI
 from htmlTemplates import css, bot_template, user_template
+from langchain_chroma import Chroma
 # from langchain.llms import HuggingFaceHub
 import json
 import requests
@@ -17,6 +18,8 @@ import os
 import chromadb
 from pyprojroot import here
 from prepare_vectordb_from_text_chunks import create_chromaDB
+import warnings
+
 def load_lottiefile(filepath:str):
     with open(filepath,'r',encoding='utf-8') as f:
         return json.load(f)
@@ -95,9 +98,19 @@ def handle_userinput(user_input):
             st.write(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
             # st.write(bot_template.replace("{{MSG}}",message.content),unsafe_allow_html=True)
     # st.write(response)
+def run_once(f):
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            wrapper.has_run = True
+            return f(*args, **kwargs)
+    wrapper.has_run = False
+    return wrapper
+@run_once
+def get_session_state(vectorstore):
+    st.session_state.conversation = get_conversation_chain(vectorstore)
 
 if __name__=='__main__':
-
+    warnings.filterwarnings('ignore')
     lottie_books=load_lottieurl('https://lottie.host/262a2841-5ec5-4228-9e10-f1c40368652c/Mc4Pv7r5p5.json')
     lottie_books_local=load_lottiefile('resources/books.json')
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
@@ -112,20 +125,22 @@ if __name__=='__main__':
     st_lottie(
         lottie_books,
         speed=1,
-        reverse=False,
+        reverse=True,
         loop=False,
         quality='medium',
         # renderer='svg',
-        height=450,
-        width=450,
+        height=300,
+        width=300,
         key=None,
+        
     )
     st.write(css, unsafe_allow_html=True)
     st.header("Chat with PDF's")
     user_question=st.text_input("Ask me anything about the documents:")
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.load_local('resources/FAISS/', embeddings, allow_dangerous_deserialization=True)
-    st.session_state.conversation = get_conversation_chain(vectorstore)
+    action=run_once(get_session_state(vectorstore))
+    
     if user_question:
         handle_userinput(user_question)
 
