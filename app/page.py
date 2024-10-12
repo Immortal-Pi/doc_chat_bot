@@ -10,6 +10,7 @@ from langchain.chains.conversational_retrieval.base import ConversationalRetriev
 from langchain.chat_models import ChatOpenAI
 from htmlTemplates import css, bot_template, user_template
 from langchain_chroma import Chroma
+from chromadb import Client
 # from langchain.llms import HuggingFaceHub
 import json
 import requests
@@ -75,7 +76,12 @@ def get_vector_store(text_chunk):
 
 def get_conversation_chain():
     embeddings = OpenAIEmbeddings()
+    # collection=
     vectorstore = FAISS.load_local('resources/FAISS/', embeddings, allow_dangerous_deserialization=True)
+    # vectorstore=Chroma(
+    #     collection_name=collection,
+    #     embedding_function=embeddings
+    # )
     llm=ChatOpenAI()
     # llm=HuggingFaceHub(repo_id='nvidia/Llama-3_1-Nemotron-51B-Instruct',model_kwargs={"temperature":0.5,"max_length":512})
     memory=ConversationBufferMemory(memory_key='chat_history',return_messages=True)
