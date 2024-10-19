@@ -53,8 +53,8 @@ def get_pdf_text(pdf_docs):
 def get_text_chunks(text):
     text_splitter=CharacterTextSplitter(
         separator='\n',
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=1500,
+        chunk_overlap=400,
         length_function=len
     )
     chunks=text_splitter.split_text(text)
@@ -95,11 +95,17 @@ def get_conversation_chain():
 
 def handle_userinput(user_input):
     # embeddings = OpenAIEmbeddings()
-
+    # llm = ChatOpenAI()
     response=st.session_state.conversation({'question':user_input})
     st.session_state.chat_history=response['chat_history']
     # vectorstore = FAISS.load_local('resources/FAISS/index.index', embeddings)
     # st.write(vectorstore)
+    # memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
+    # conversation_chain = ConversationalRetrievalChain.from_llm(
+    #     llm=llm,
+    #     retriever=vectorstore.as_retriever(),
+    #     memory=memory
+    # )
     for i, message in enumerate(reversed(st.session_state.chat_history)):
         if i%2==0:
             st.write(bot_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
